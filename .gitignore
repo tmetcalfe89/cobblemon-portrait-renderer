@@ -25,3 +25,4 @@ dist-ssr
 
 /animations/*.json
 /models/*.json
+/public/textures/*.png
