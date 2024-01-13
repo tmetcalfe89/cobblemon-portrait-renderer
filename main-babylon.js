@@ -29,9 +29,13 @@ const buildCube = ({
     uv,
     textureSize,
     texture,
-    inflate = 0
+    inflate = 0,
+    name
 } = {}) => {
     const [sx, sy, sz] = size;
+    const rsx = sx || 0.01;
+    const rsy = sy || 0.01;
+    const rsz = sz || 0.01;
     let faceUv;
 
     if (uv && textureSize) {
@@ -47,15 +51,15 @@ const buildCube = ({
         faceUv[5] = buildFaceUv(ox + sz + sx, oy + sz, ox + sz + 2 * sx, oy, tw, th);
     }
     const actualInflate = inflate + 1;
-    const box = BABYLON.MeshBuilder.CreateBox("box", {
+    const box = BABYLON.MeshBuilder.CreateBox(name, {
         faceUV: faceUv,
         wrap: true,
-        width: sx,
-        height: sy,
-        depth: sz
+        width: rsx,
+        height: rsy,
+        depth: rsz
     });
     box.material = texture;
-    box.position.set(...position.map((e, i) => e + (size[i] / 2)));
+    box.position.set(...position.map((e, i) => e + ([rsx, rsy, rsz][i] / 2)));
     box.rotation.set(...rotation.map(toRadians));
     box.scaling.setAll(actualInflate);
 
@@ -72,7 +76,8 @@ const buildModel = (geo, anims, texture) => {
         const [pX, pY, pZ] = pivot;
         const boneCube = buildCube({
             position: [pX, pY, pZ],
-            rotation
+            rotation,
+            name
         });
         boneCube.state = { pivot, rotation };
 
@@ -87,7 +92,7 @@ const buildModel = (geo, anims, texture) => {
         // boneCube.position.y -= ppY;
         // boneCube.position.z -= ppZ;
 
-        cubes.forEach(({ origin, size, uv, rotation, inflate = 0 }) => {
+        cubes.forEach(({ origin, size, uv, rotation, inflate = 0 }, index) => {
             const cube = buildCube({
                 size: size.map(e => e ? e : 0.01),
                 position: origin,
@@ -95,7 +100,8 @@ const buildModel = (geo, anims, texture) => {
                 texture,
                 textureSize,
                 uv,
-                inflate
+                inflate,
+                name: `${name}-${index}`
             });
             boneCube.addChild(cube);
         });
@@ -113,13 +119,13 @@ const createScene = () => {
     const camera = new BABYLON.ArcRotateCamera("Camera", -Math.PI / 2, Math.PI / 3, 100, BABYLON.Vector3.Zero());
     camera.attachControl(true)
     new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 3, -1));
+    BABYLON.MeshBuilder.CreateGround("ground", {height: 50, width: 50, subdivisions: 4})
 
     const texture = buildTexture({ url: `/textures/${pokemon}.png` })
-    const model = buildModel(geoData, animData, texture);
-    scene.addGeometry(model);
+    const model = buildModel(geoData, animData, texture, scene);
 
     scene.registerBeforeRender(() => {
-        // model.rotation.y += 0.01;
+        model.rotation.y += 0.005;
     });
 
     return scene;
